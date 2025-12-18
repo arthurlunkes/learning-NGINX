@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NGINX - Monitoramento em Tempo Real</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        min-height: 100vh;
+      }
+
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      h1 {
+        text-align: center;
+        margin-bottom: 10px;
+        font-size: 2.5em;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      }
+
+      .subtitle {
+        text-align: center;
+        margin-bottom: 30px;
+        opacity: 0.9;
+        font-size: 1.1em;
+      }
+
+      .status-indicator {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 8px;
+        animation: pulse 2s infinite;
+      }
+
+      .status-online {
+        background: #4caf50;
+      }
+
+      .status-offline {
+        background: #f44336;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+
+      .dashboard {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+      }
+
+      .card {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: 15px;
+        padding: 25px;
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        transition: transform 0.3s ease;
+      }
+
+      .card:hover {
+        transform: translateY(-5px);
+      }
+
+      .card-title {
+        font-size: 0.9em;
+        opacity: 0.8;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .card-value {
+        font-size: 3em;
+        font-weight: bold;
+        margin-bottom: 5px;
+        font-family: "Courier New", monospace;
+      }
+
+      .card-label {
+        font-size: 0.85em;
+        opacity: 0.7;
+      }
+
+      .chart-container {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+      }
+
+      .chart {
+        width: 100%;
+        height: 200px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .chart-line {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+      }
+
+      .info-section {
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 10px;
+        padding: 20px;
+        margin-top: 20px;
+      }
+
+      .info-section h3 {
+        margin-bottom: 15px;
+        font-size: 1.3em;
+      }
+
+      .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 15px;
+      }
+
+      .info-item {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 15px;
+        border-radius: 8px;
+      }
+
+      .info-item strong {
+        display: block;
+        margin-bottom: 5px;
+        color: #ffeb3b;
+      }
+
+      .controls {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+      }
+
+      button {
+        background: rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 1em;
+        transition: all 0.3s ease;
+      }
+
+      button:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: translateY(-2px);
+      }
+
+      button:active {
+        transform: translateY(0);
+      }
+
+      .last-update {
+        text-align: center;
+        opacity: 0.7;
+        font-size: 0.9em;
+        margin-top: 20px;
+      }
+
+      code {
+        background: rgba(0, 0, 0, 0.3);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-family: "Courier New", monospace;
+        font-size: 0.9em;
+      }
+
+      .metric-change {
+        font-size: 0.8em;
+        margin-left: 10px;
+      }
+
+      .metric-up {
+        color: #4caf50;
+      }
+
+      .metric-down {
+        color: #f44336;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>📊 NGINX Monitoramento</h1>
+      <p class="subtitle">
+        <span
+          class="status-indicator status-online"
+          id="statusIndicator"
+        ></span>
+        <span id="statusText">Monitoramento em Tempo Real</span>
+      </p>
+
+      <div class="controls">
+        <button onclick="toggleMonitoring()">
+          <span id="toggleBtn">⏸ Pausar</span>
+        </button>
+        <button onclick="generateLoad()">🔄 Gerar Carga</button>
+        <button onclick="refreshNow()">♻️ Atualizar Agora</button>
+        <button onclick="resetStats()">🔄 Resetar Estatísticas</button>
+      </div>
+
+      <div class="dashboard">
+        <div class="card">
+          <div class="card-title">Conexões Ativas</div>
+          <div class="card-value" id="activeConnections">-</div>
+          <div class="card-label">Conexões simultâneas</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Total Aceitas</div>
+          <div class="card-value" id="accepts">-</div>
+          <div class="card-label">Conexões aceitas</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Total Processadas</div>
+          <div class="card-value" id="handled">-</div>
+          <div class="card-label">Conexões processadas</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Total Requisições</div>
+          <div class="card-value" id="requests">-</div>
+          <div class="card-label">Requisições HTTP</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Lendo</div>
+          <div class="card-value" id="reading">-</div>
+          <div class="card-label">Lendo cabeçalhos</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Escrevendo</div>
+          <div class="card-value" id="writing">-</div>
+          <div class="card-label">Escrevendo resposta</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Aguardando</div>
+          <div class="card-value" id="waiting">-</div>
+          <div class="card-label">Keep-alive idle</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Req/s</div>
+          <div class="card-value" id="reqPerSec">-</div>
+          <div class="card-label">Requisições por segundo</div>
+        </div>
+      </div>
+
+      <div class="chart-container">
+        <h3>📈 Histórico de Conexões Ativas</h3>
+        <canvas id="connectionsChart" class="chart"></canvas>
+      </div>
+
+      <div class="info-section">
+        <h3>ℹ️ Como Funciona</h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <strong>stub_status Module</strong>
+            O NGINX expõe métricas básicas através do módulo
+            <code>stub_status</code> no endpoint <code>/nginx-status</code>.
+          </div>
+          <div class="info-item">
+            <strong>Polling Automático</strong>
+            Esta página faz requisições a cada 2 segundos para atualizar as
+            métricas em tempo real via JavaScript.
+          </div>
+          <div class="info-item">
+            <strong>Active Connections</strong>
+            Número atual de conexões ativas, incluindo conexões aguardando
+            (waiting), lendo (reading) e escrevendo (writing).
+          </div>
+          <div class="info-item">
+            <strong>Gerar Carga</strong>
+            Use o botão "Gerar Carga" para fazer 100 requisições simultâneas e
+            ver as métricas mudarem em tempo real.
+          </div>
+        </div>
+      </div>
+
+      <div class="info-section">
+        <h3>🧪 Como Testar</h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <strong>1. Ver Status Bruto</strong>
+            Acesse
+            <a href="/nginx-status" style="color: #ffeb3b">/nginx-status</a>
+            para ver os dados brutos do stub_status.
+          </div>
+          <div class="info-item">
+            <strong>2. Gerar Carga Manual</strong>
+            <code
+              >1..100 | ForEach-Object { Invoke-WebRequest http://localhost:8080
+              }</code
+            >
+          </div>
+          <div class="info-item">
+            <strong>3. ApacheBench</strong>
+            <code>ab -n 1000 -c 10 http://localhost:8080/</code>
+          </div>
+          <div class="info-item">
+            <strong>4. Health Check</strong>
+            <code>curl http://localhost:8080/health</code>
+          </div>
+        </div>
+      </div>
+
+      <p class="last-update">
+        Última atualização: <span id="lastUpdate">-</span>
+      </p>
+    </div>
+
+    <script>
+      let monitoring = true;
+      let previousStats = {};
+      let updateInterval;
+      let chart;
+      let chartData = [];
+      const maxDataPoints = 60;
+
+      // Inicializar gráfico
+      function initChart() {
+        const canvas = document.getElementById("connectionsChart");
+        chart = canvas.getContext("2d");
+        canvas.width = canvas.offsetWidth;
+        canvas.height = 200;
+      }
+
+      // Desenhar gráfico
+      function drawChart() {
+        if (!chart) return;
+
+        const canvas = chart.canvas;
+        const width = canvas.width;
+        const height = canvas.height;
+
+        chart.clearRect(0, 0, width, height);
+
+        if (chartData.length < 2) return;
+
+        const maxValue = Math.max(...chartData, 10);
+        const step = width / (maxDataPoints - 1);
+
+        // Desenhar linhas de grade
+        chart.strokeStyle = "rgba(255, 255, 255, 0.1)";
+        chart.lineWidth = 1;
+        for (let i = 0; i <= 5; i++) {
+          const y = (height / 5) * i;
+          chart.beginPath();
+          chart.moveTo(0, y);
+          chart.lineTo(width, y);
+          chart.stroke();
+        }
+
+        // Desenhar linha do gráfico
+        chart.strokeStyle = "#4CAF50";
+        chart.lineWidth = 3;
+        chart.beginPath();
+
+        chartData.forEach((value, index) => {
+          const x = index * step;
+          const y = height - (value / maxValue) * height;
+
+          if (index === 0) {
+            chart.moveTo(x, y);
+          } else {
+            chart.lineTo(x, y);
+          }
+        });
+
+        chart.stroke();
+
+        // Desenhar pontos
+        chart.fillStyle = "#ffeb3b";
+        chartData.forEach((value, index) => {
+          const x = index * step;
+          const y = height - (value / maxValue) * height;
+          chart.beginPath();
+          chart.arc(x, y, 3, 0, Math.PI * 2);
+          chart.fill();
+        });
+      }
+
+      // Buscar status do NGINX
+      async function fetchStatus() {
+        try {
+          const response = await fetch("/nginx-status");
+          const text = await response.text();
+
+          // Parsear stub_status
+          // Formato: Active connections: 1
+          //          server accepts handled requests
+          //          7 7 14
+          //          Reading: 0 Writing: 1 Waiting: 0
+
+          const lines = text.trim().split("\n");
+          const active = parseInt(lines[0].match(/\d+/)[0]);
+          const numbers = lines[2].trim().split(/\s+/);
+          const accepts = parseInt(numbers[0]);
+          const handled = parseInt(numbers[1]);
+          const requests = parseInt(numbers[2]);
+          const states = lines[3].match(/\d+/g);
+          const reading = parseInt(states[0]);
+          const writing = parseInt(states[1]);
+          const waiting = parseInt(states[2]);
+
+          const stats = {
+            active,
+            accepts,
+            handled,
+            requests,
+            reading,
+            writing,
+            waiting,
+          };
+
+          updateUI(stats);
+          previousStats = stats;
+
+          // Atualizar indicador de status
+          document.getElementById("statusIndicator").className =
+            "status-indicator status-online";
+          document.getElementById("statusText").textContent =
+            "Monitoramento em Tempo Real";
+        } catch (error) {
+          console.error("Erro ao buscar status:", error);
+          document.getElementById("statusIndicator").className =
+            "status-indicator status-offline";
+          document.getElementById("statusText").textContent = "Erro de Conexão";
+        }
+      }
+
+      // Atualizar UI
+      function updateUI(stats) {
+        document.getElementById("activeConnections").textContent = stats.active;
+        document.getElementById("accepts").textContent =
+          stats.accepts.toLocaleString();
+        document.getElementById("handled").textContent =
+          stats.handled.toLocaleString();
+        document.getElementById("requests").textContent =
+          stats.requests.toLocaleString();
+        document.getElementById("reading").textContent = stats.reading;
+        document.getElementById("writing").textContent = stats.writing;
+        document.getElementById("waiting").textContent = stats.waiting;
+
+        // Calcular req/s
+        if (previousStats.requests) {
+          const reqDiff = stats.requests - previousStats.requests;
+          const reqPerSec = (reqDiff / 2).toFixed(2); // 2 segundos de intervalo
+          document.getElementById("reqPerSec").textContent = reqPerSec;
+        }
+
+        // Atualizar gráfico
+        chartData.push(stats.active);
+        if (chartData.length > maxDataPoints) {
+          chartData.shift();
+        }
+        drawChart();
+
+        // Atualizar timestamp
+        const now = new Date().toLocaleTimeString("pt-BR");
+        document.getElementById("lastUpdate").textContent = now;
+      }
+
+      // Toggle monitoramento
+      function toggleMonitoring() {
+        monitoring = !monitoring;
+        const btn = document.getElementById("toggleBtn");
+
+        if (monitoring) {
+          btn.textContent = "⏸ Pausar";
+          startMonitoring();
+        } else {
+          btn.textContent = "▶️ Continuar";
+          clearInterval(updateInterval);
+        }
+      }
+
+      // Atualizar agora
+      function refreshNow() {
+        fetchStatus();
+      }
+
+      // Gerar carga de teste
+      async function generateLoad() {
+        const promises = [];
+        for (let i = 0; i < 100; i++) {
+          promises.push(fetch("/health").catch(() => {}));
+        }
+        await Promise.all(promises);
+        setTimeout(fetchStatus, 500);
+      }
+
+      // Resetar estatísticas locais
+      function resetStats() {
+        chartData = [];
+        previousStats = {};
+        drawChart();
+      }
+
+      // Iniciar monitoramento
+      function startMonitoring() {
+        fetchStatus();
+        updateInterval = setInterval(fetchStatus, 2000);
+      }
+
+      // Inicializar
+      window.addEventListener("load", () => {
+        initChart();
+        startMonitoring();
+      });
+
+      // Redimensionar gráfico
+      window.addEventListener("resize", () => {
+        const canvas = document.getElementById("connectionsChart");
+        canvas.width = canvas.offsetWidth;
+        drawChart();
+      });
+    </script>
+  </body>
+</html>

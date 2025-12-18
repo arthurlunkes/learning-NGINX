@@ -363,6 +363,124 @@ docker-compose down
 
 ---
 
+### 7. Monitoramento e Status
+
+**🎯 Objetivo**: Monitorar o NGINX em tempo real usando o módulo `stub_status` com dashboard visual.
+
+**💡 Conceitos**:
+- Módulo `stub_status` do NGINX
+- Métricas de performance em tempo real
+- Visualização de dados com JavaScript
+- Polling e atualização automática
+- Health checks
+
+**📁 Estrutura**:
+```
+7-monitoring/
+├── docker-compose.yaml
+├── nginx.conf          # stub_status configurado
+└── html/
+    └── index.html     # Dashboard interativo
+```
+
+#### Como executar:
+
+```bash
+cd 7-monitoring
+docker-compose up -d
+```
+
+**Acesse**: http://localhost:8080
+
+#### Funcionalidades do Dashboard:
+
+- ✅ **Conexões Ativas**: Monitoramento em tempo real
+- ✅ **Métricas Acumuladas**: Total de conexões aceitas, processadas e requisições
+- ✅ **Estados de Conexão**: Reading, Writing, Waiting
+- ✅ **Requisições/Segundo**: Taxa calculada automaticamente
+- ✅ **Gráfico em Tempo Real**: Histórico visual das conexões
+- ✅ **Gerador de Carga**: Testar com 100 requisições simultâneas
+
+#### Testar:
+
+**1. Ver status bruto do NGINX:**
+
+```bash
+curl http://localhost:8080/nginx-status
+```
+
+**Saída exemplo:**
+```
+Active connections: 3
+server accepts handled requests
+ 152 152 301
+Reading: 0 Writing: 1 Waiting: 2
+```
+
+**2. Gerar carga com PowerShell:**
+
+```powershell
+# 100 requisições
+1..100 | ForEach-Object { Invoke-WebRequest http://localhost:8080/health }
+
+# Requisições contínuas
+while($true) { Invoke-WebRequest http://localhost:8080; Start-Sleep -Milliseconds 100 }
+```
+
+**3. Gerar carga com Apache Bench:**
+
+```bash
+# 1000 requisições, 10 concorrentes
+ab -n 1000 -c 10 http://localhost:8080/
+
+# Requisições contínuas por 30 segundos
+ab -t 30 -c 5 http://localhost:8080/
+```
+
+**4. Health check endpoint:**
+
+```bash
+curl http://localhost:8080/health
+```
+
+#### Parar:
+
+```bash
+docker-compose down
+```
+
+**🔍 O que observar**:
+
+**Métricas do stub_status**:
+- **Active connections**: Total de conexões ativas no momento
+- **accepts**: Total de conexões aceitas pelo servidor
+- **handled**: Total de conexões processadas com sucesso
+- **requests**: Total de requisições HTTP processadas
+- **Reading**: Conexões lendo dados do cliente
+- **Writing**: Conexões enviando dados para o cliente
+- **Waiting**: Conexões keep-alive em espera
+
+**No nginx.conf**:
+```nginx
+location /nginx-status {
+    stub_status on;
+    access_log off;
+}
+```
+
+**Limitações do stub_status**:
+- Métricas básicas apenas (sem detalhes por endpoint)
+- Sem métricas de latência detalhadas
+- Sem histórico persistente
+
+**Para monitoramento avançado, considere**:
+- **NGINX Plus**: stub_status estendido com mais métricas
+- **Prometheus + nginx-exporter**: Métricas detalhadas e dashboards Grafana
+- **ELK Stack**: Análise avançada de logs
+- **Datadog/New Relic**: Soluções APM completas
+
+---
+
 ## 🛠 Comandos Úteis
 
 ### Ver logs do NGINX:
@@ -450,6 +568,13 @@ Ao completar este projeto, você terá aprendido:
 - ✅ Conexões bidirecionais persistentes
 - ✅ Combinação de protocolos HTTP e WebSocket
 
+### Monitoramento & Observabilidade
+- ✅ stub_status module para métricas básicas
+- ✅ Monitoramento em tempo real
+- ✅ Visualização de métricas com dashboards
+- ✅ Health checks e disponibilidade
+- ✅ Log formats customizados
+
 ### DevOps
 - ✅ Redes Docker personalizadas
 - ✅ Volumes e bind mounts
@@ -482,14 +607,16 @@ Ao completar este projeto, você terá aprendido:
 - [NGINX Cookbook (O'Reilly)](https://www.nginx.com/resources/library/complete-nginx-cookbook/) - Receitas práticas
 - [Learn NGINX in 2024](https://www.freecodecamp.org/news/the-nginx-handbook/) - Tutorial completo
 - [Docker + NGINX](https://hub.docker.com/_/nginx) - Documentação da imagem oficial
-
----
-
-## 📝 Próximos Passos
-
-Após dominar estes exemplos, você pode explorar:
-
-1. **Rate Limiting** - Limitar requisições por IP
+ (`limit_req_zone`)
+2. **Caching** - Cache de conteúdo estático e dinâmico (`proxy_cache`)
+3. **Gzip Compression** - Compressão de resposta para reduzir banda
+4. **Access Control** - Restrição por IP, autenticação básica
+5. **Logging Avançado** - Logs customizados, JSON logs, análise
+6. **SSL/TLS Avançado** - Client certificates, OCSP, Certificate Pinning
+7. **Microservices** - Roteamento complexo entre serviços, service mesh
+8. **Kubernetes Ingress** - NGINX como Ingress Controller
+9. **Prometheus Exporter** - Métricas avançadas com nginx-prometheus-exporter
+10. **ModSecurity WAF** - Web Application Firewall integrado
 2. **Caching** - Cache de conteúdo estático e dinâmico
 3. **Gzip Compression** - Compressão de resposta
 4. **Access Control** - Restrição por IP, autenticação básica
@@ -515,4 +642,4 @@ Encontrou algum problema ou tem sugestões? Sinta-se livre para:
 
 ---
 
-**Desenvolvido com 💚 para aprender NGINX**
+**Desenvolvido com 💚 por Arthur Lunkes para aprender NGINX**
