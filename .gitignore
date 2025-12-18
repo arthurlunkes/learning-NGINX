@@ -1,0 +1,47 @@
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+*.log
+
+# Certificados SSL (dados sensíveis - não versionar)
+*.pem
+*.key
+*.crt
+*.csr
+4-HTTPS_TLS1-3_HTTP2/certs/
+
+# Docker
+.docker/
+*.pid
+
+# Sistema Operacional
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.history/
+
+# Arquivos temporários
+tmp/
+temp/
+*.tmp
+*.bak
+*.cache
+
+# Logs
+logs/
+*.log
+
+# Ambiente
+.env
+.env.local
+.env.*.local

@@ -1,0 +1,14 @@
+{
+  "name": "test_node_loadbalance",
+  "version": "1.0.0",
+  "description": "Some test",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "Arthur Lunkes",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}

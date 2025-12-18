@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:latest
+    container_name: nginx-websocket
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - websocket-server
+    networks:
+      - websocket-network
+    restart: unless-stopped
+
+  websocket-server:
+    image: node:18
+    container_name: websocket-server
+    working_dir: /app
+    command: node index.js
+    volumes:
+      - ./src:/app
+    networks:
+      - websocket-network
+    restart: unless-stopped
+
+networks:
+  websocket-network:
+    driver: bridge

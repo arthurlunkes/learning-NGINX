@@ -1,34 +1,65 @@
-# Aprendendo NGINX
+# 🚀 Aprendendo NGINX
 
-Projeto de aprendizado sobre NGINX com diversos exemplos práticos usando Docker.
+Projeto completo de aprendizado sobre NGINX com 6 exemplos práticos usando Docker, desde o básico até configurações avançadas de segurança e WebSockets.
 
-## Pré-requisitos
+## 📋 Índice
 
-- Docker
-- Docker Compose
-- OpenSSL (para gerar certificados)
+1. [Pré-requisitos](#-pré-requisitos)
+2. [Projetos](#-projetos)
+3. [Comandos Úteis](#-comandos-úteis)
+4. [Conceitos Aprendidos](#-conceitos-aprendidos)
+5. [Recursos](#-recursos-de-aprendizado)
 
 ---
 
-## 1. Primeiro Docker (Hello World)
+## 🛠 Pré-requisitos
 
-Exemplo básico de NGINX servindo uma página HTML estática.
+- **Docker** (v20.10+)
+- **Docker Compose** (v2.0+)
+- **OpenSSL** (para certificados SSL/TLS)
+- **Node.js** (opcional, apenas para desenvolvimento local)
 
-### Executar:
+---
+
+## 📦 Projetos
+
+### 1. Primeiro Docker - Hello World
+
+**🎯 Objetivo**: Aprender o básico de como servir conteúdo estático com NGINX em Docker.
+
+**💡 Conceitos**:
+- Dockerfile básico
+- NGINX como servidor de arquivos estáticos
+- Build e execução de containers Docker
+
+**📁 Estrutura**:
+```
+1-first_docker/
+├── dockerfile       # Imagem customizada do NGINX
+└── hello.html      # Página HTML simples
+```
+
+#### Como executar:
 
 ```bash
 cd 1-first_docker
 docker build -t nginx-hello .
-docker run -d -p 8080:80 nginx-hello
+docker run -d -p 9090:80 --name nginx-hello nginx-hello
 ```
 
-Acesse: http://localhost:8080
+**Acesse**: http://localhost:9090/hello.html
 
-### Parar:
+#### Parar:
 
 ```bash
-docker stop $(docker ps -q --filter ancestor=nginx-hello)
+docker stop nginx-hello
+docker rm nginx-hello
 ```
+
+**🔍 O que observar**:
+- Como o Dockerfile copia arquivos para dentro do container
+- Mapeamento de portas (`-p 9090:80`)
+- Volume padrão do NGINX (`/usr/share/nginx/html`)
 
 ---
 

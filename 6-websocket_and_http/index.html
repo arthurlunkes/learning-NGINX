@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebSocket + HTTP com NGINX</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 50px auto;
+        padding: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+      }
+      .container {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 30px;
+        border-radius: 10px;
+        backdrop-filter: blur(10px);
+      }
+      h1 {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      .section {
+        background: rgba(0, 0, 0, 0.2);
+        padding: 20px;
+        border-radius: 5px;
+        margin: 20px 0;
+      }
+      input,
+      button {
+        padding: 10px;
+        margin: 5px;
+        border-radius: 5px;
+        border: none;
+      }
+      input {
+        width: 70%;
+      }
+      button {
+        background: #4caf50;
+        color: white;
+        cursor: pointer;
+        font-weight: bold;
+      }
+      button:hover {
+        background: #45a049;
+      }
+      #messages {
+        max-height: 300px;
+        overflow-y: auto;
+        background: rgba(0, 0, 0, 0.3);
+        padding: 15px;
+        border-radius: 5px;
+        margin-top: 15px;
+      }
+      .message {
+        padding: 8px;
+        margin: 5px 0;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 3px;
+      }
+      .status {
+        padding: 10px;
+        border-radius: 5px;
+        text-align: center;
+        font-weight: bold;
+      }
+      .connected {
+        background: rgba(76, 175, 80, 0.3);
+      }
+      .disconnected {
+        background: rgba(244, 67, 54, 0.3);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🚀 WebSocket + HTTP com NGINX</h1>
+
+      <div class="section">
+        <h2>Status da Conexão:</h2>
+        <div id="status" class="status disconnected">Desconectado</div>
+      </div>
+
+      <div class="section">
+        <h2>Chat WebSocket:</h2>
+        <div>
+          <input
+            type="text"
+            id="messageInput"
+            placeholder="Digite sua mensagem..."
+          />
+          <button onclick="sendMessage()">Enviar</button>
+        </div>
+        <div id="messages"></div>
+      </div>
+
+      <div class="section">
+        <h2>Como funciona:</h2>
+        <ul>
+          <li>✓ Página HTML servida pelo NGINX (HTTP)</li>
+          <li>✓ WebSocket proxy através do NGINX (rota /ws)</li>
+          <li>✓ Comunicação bidirecional em tempo real</li>
+          <li>✓ Mesma porta para HTTP e WebSocket</li>
+        </ul>
+      </div>
+    </div>
+
+    <script>
+      let ws;
+      const messagesDiv = document.getElementById("messages");
+      const statusDiv = document.getElementById("status");
+      const messageInput = document.getElementById("messageInput");
+
+      function connect() {
+        // Conectar ao WebSocket através do NGINX
+        ws = new WebSocket("ws://" + window.location.host + "/ws");
+
+        ws.onopen = () => {
+          statusDiv.textContent = "Conectado";
+          statusDiv.className = "status connected";
+          addMessage("✓ Conectado ao servidor WebSocket", "system");
+        };
+
+        ws.onmessage = (event) => {
+          addMessage(event.data, "received");
+        };
+
+        ws.onerror = (error) => {
+          console.error("WebSocket error:", error);
+          addMessage("✗ Erro na conexão", "error");
+        };
+
+        ws.onclose = () => {
+          statusDiv.textContent = "Desconectado";
+          statusDiv.className = "status disconnected";
+          addMessage("✗ Desconectado do servidor", "system");
+          // Tentar reconectar após 3 segundos
+          setTimeout(connect, 3000);
+        };
+      }
+
+      function sendMessage() {
+        const message = messageInput.value.trim();
+        if (message && ws.readyState === WebSocket.OPEN) {
+          ws.send(message);
+          addMessage("Você: " + message, "sent");
+          messageInput.value = "";
+        }
+      }
+
+      function addMessage(text, type) {
+        const messageElement = document.createElement("div");
+        messageElement.className = "message";
+        messageElement.textContent = text;
+        messagesDiv.appendChild(messageElement);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      }
+
+      // Permitir envio com Enter
+      messageInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+          sendMessage();
+        }
+      });
+
+      // Conectar ao carregar a página
+      connect();
+    </script>
+  </body>
+</html>

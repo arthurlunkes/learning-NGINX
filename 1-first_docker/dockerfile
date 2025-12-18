@@ -1,0 +1,10 @@
+# docker build -t my-nginx .
+# docker run -d -p 9090:80 --name nginx-html my-nginx
+
+# open http://localhost:9090/hello.html and see "Hello World!"
+
+FROM nginx:alpine
+
+COPY hello.html /usr/share/nginx/html
+
+EXPOSE 80

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NGINX - HTTPS TLS 1.3 + HTTP/2</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 50px auto;
+        padding: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+      }
+      .container {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 30px;
+        border-radius: 10px;
+        backdrop-filter: blur(10px);
+      }
+      h1 {
+        text-align: center;
+      }
+      .info {
+        background: rgba(0, 0, 0, 0.2);
+        padding: 15px;
+        border-radius: 5px;
+        margin: 20px 0;
+      }
+      .badge {
+        display: inline-block;
+        padding: 5px 10px;
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 3px;
+        margin: 5px;
+      }
+      a {
+        color: #ffeb3b;
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      code {
+        background: rgba(0, 0, 0, 0.3);
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-family: "Courier New", monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🔒 NGINX - HTTPS + TLS 1.3 + HTTP/2</h1>
+
+      <div class="info">
+        <h2>Recursos Habilitados:</h2>
+        <div class="badge">✓ HTTPS</div>
+        <div class="badge">✓ TLS 1.3</div>
+        <div class="badge">✓ HTTP/2</div>
+        <div class="badge">✓ HSTS</div>
+        <div class="badge">✓ OCSP Stapling</div>
+      </div>
+
+      <div class="info">
+        <h3>Como testar:</h3>
+        <ol>
+          <li>
+            Acesse: <a href="/info">/info</a> para ver detalhes do protocolo
+          </li>
+          <li>
+            Verifique no DevTools (Network → Protocol) - deve mostrar "h2"
+          </li>
+          <li>Use: <code>curl -Ik https://localhost/info</code></li>
+          <li>
+            Teste TLS:
+            <code>openssl s_client -connect localhost:443 -tls1_3</code>
+          </li>
+        </ol>
+      </div>
+
+      <div class="info">
+        <h3>Informações do Protocolo:</h3>
+        <p id="protocol-info">Carregando...</p>
+      </div>
+    </div>
+
+    <script>
+      fetch("/info")
+        .then((res) => res.text())
+        .then((data) => {
+          document.getElementById("protocol-info").innerHTML = data.replace(
+            /\n/g,
+            "<br>"
+          );
+        })
+        .catch((err) => {
+          document.getElementById("protocol-info").innerHTML =
+            "Erro ao carregar informações";
+        });
+    </script>
+  </body>
+</html>
