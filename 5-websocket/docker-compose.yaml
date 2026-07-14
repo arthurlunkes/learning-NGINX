@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   nginx:
     image: nginx:latest
@@ -18,9 +16,14 @@ services:
     image: node:18
     container_name: websocket-server
     working_dir: /app
-    command: node index.js
+    # As dependencias sao instaladas no start porque node_modules/ nao e
+    # versionado. Sem isto, um clone limpo morre com "Cannot find module 'ws'".
+    command: sh -c "npm install --no-package-lock --silent --no-audit --no-fund && node index.js"
     volumes:
       - ./src:/app
+      # Volume anonimo: mantem o node_modules dentro do container, sem sujar
+      # a pasta do host nem depender do que ja existe la.
+      - /app/node_modules
     networks:
       - websocket-network
     restart: unless-stopped
