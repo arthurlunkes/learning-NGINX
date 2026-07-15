@@ -12,6 +12,7 @@ package-lock.json
 *.crt
 *.csr
 4-HTTPS_TLS1-3_HTTP2/certs/
+8-multitier_roteamento_por_host/certs/
 
 # Docker
 .docker/
@@ -45,3 +46,13 @@ logs/
 .env
 .env.local
 .env.*.local
+
+# Segredos e artefatos gerados localmente
+14-controle_acesso/certs/
+14-controle_acesso/htpasswd
+17-stream_tcp_udp/certs/
+16-observabilidade/logs/
+17-stream_tcp_udp/logs/
+18-http3_quic/certs/
+18-http3_quic/logs/
+20-njs/logs/
