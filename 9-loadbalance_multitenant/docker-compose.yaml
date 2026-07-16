@@ -1,0 +1,100 @@
+##############################################################################
+# Exemplo 9 - Load balancing multi-tenant (silo + pool compartilhado)
+#
+# 8 containers, nenhum com dependencia de npm: sobe offline e instantaneo.
+##############################################################################
+
+services:
+
+  nginx-mt:
+    image: nginx:latest
+    container_name: nginx-mt
+    hostname: nginx-mt
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - authsvc
+      - acme1
+      - acme2
+      - globex1
+      - shared1
+      - shared2
+      - shared3
+    networks: [mt-network]
+    restart: unless-stopped
+
+  # Valida o JWT no lugar do `auth_jwt`, que e exclusivo do NGINX Plus.
+  authsvc:
+    image: node:18
+    container_name: authsvc
+    hostname: authsvc
+    working_dir: /app
+    command: node index.js
+    environment:
+      JWT_SEGREDO: segredo-de-exemplo-nao-use-em-producao
+    volumes:
+      - ./auth:/app
+    networks: [mt-network]
+    restart: unless-stopped
+
+  # ==========================================================================
+  # SILO do tenant "acme" - duas replicas so dele
+  # ==========================================================================
+  acme1: &app
+    image: node:18
+    container_name: acme1
+    hostname: acme1
+    working_dir: /app
+    command: node index.js
+    environment:
+      POOL: pool_acme
+    volumes:
+      - ./app:/app
+    networks: [mt-network]
+    restart: unless-stopped
+
+  acme2:
+    <<: *app
+    container_name: acme2
+    hostname: acme2
+
+  # ==========================================================================
+  # SILO do tenant "globex" - uma replica. Promover para duas e copiar o
+  # bloco acima; nada muda no nginx.conf alem do upstream.
+  # ==========================================================================
+  globex1:
+    <<: *app
+    container_name: globex1
+    hostname: globex1
+    environment:
+      POOL: pool_globex
+
+  # ==========================================================================
+  # POOL COMPARTILHADO - todos os tenants pequenos dividem estas tres
+  # ==========================================================================
+  shared1:
+    <<: *app
+    container_name: shared1
+    hostname: shared1
+    environment:
+      POOL: pool_compartilhado
+
+  shared2:
+    <<: *app
+    container_name: shared2
+    hostname: shared2
+    environment:
+      POOL: pool_compartilhado
+
+  shared3:
+    <<: *app
+    container_name: shared3
+    hostname: shared3
+    environment:
+      POOL: pool_compartilhado
+
+networks:
+  mt-network:
+    driver: bridge
