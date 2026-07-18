@@ -1,0 +1,64 @@
+##############################################################################
+# Exemplo 13 - Load balancing avancado e failover
+##############################################################################
+
+services:
+  nginx:
+    image: nginx:latest
+    container_name: nginx-lb-avancado
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./snippets:/etc/nginx/snippets:ro
+    depends_on: [app1, app2, app3, reserva, quebrado]
+    networks: [lb-network]
+    restart: unless-stopped
+
+  app1: &app
+    image: node:18
+    container_name: app1
+    hostname: app1
+    working_dir: /app
+    command: node index.js
+    environment:
+      NOME: app1
+    volumes:
+      - ./app:/app
+    networks: [lb-network]
+    restart: unless-stopped
+
+  app2:
+    <<: *app
+    container_name: app2
+    hostname: app2
+    environment:
+      NOME: app2
+
+  app3:
+    <<: *app
+    container_name: app3
+    hostname: app3
+    environment:
+      NOME: app3
+
+  # So entra em campo quando todas as primarias estiverem fora.
+  reserva:
+    <<: *app
+    container_name: reserva
+    hostname: reserva
+    environment:
+      NOME: reserva
+
+  # Responde 500 em tudo, de proposito.
+  quebrado:
+    <<: *app
+    container_name: quebrado
+    hostname: quebrado
+    environment:
+      NOME: quebrado
+      SEMPRE_ERRO: "1"
+
+networks:
+  lb-network:
+    driver: bridge
