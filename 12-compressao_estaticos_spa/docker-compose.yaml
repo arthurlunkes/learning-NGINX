@@ -1,0 +1,16 @@
+##############################################################################
+# Exemplo 12 - Compressao, estaticos e SPA
+#
+# So o NGINX: nao ha backend nenhum aqui.
+##############################################################################
+
+services:
+  nginx:
+    image: nginx:latest
+    container_name: nginx-estaticos
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./html:/usr/share/nginx/html:ro
+    restart: unless-stopped
