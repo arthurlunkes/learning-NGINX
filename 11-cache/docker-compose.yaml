@@ -1,0 +1,38 @@
+##############################################################################
+# Exemplo 11 - Cache de conteudo
+##############################################################################
+
+services:
+  nginx:
+    image: nginx:latest
+    container_name: nginx-cache
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./snippets:/etc/nginx/snippets:ro
+      # Volume nomeado para o cache sobreviver a um restart do container - e
+      # para dar para inspecionar os arquivos gravados.
+      - cache-dados:/var/cache/nginx/conteudo
+    depends_on:
+      - app
+    networks: [cache-network]
+    restart: unless-stopped
+
+  app:
+    image: node:18
+    container_name: cache-app
+    hostname: app
+    working_dir: /app
+    command: node index.js
+    volumes:
+      - ./app:/app
+    networks: [cache-network]
+    restart: unless-stopped
+
+volumes:
+  cache-dados:
+
+networks:
+  cache-network:
+    driver: bridge
