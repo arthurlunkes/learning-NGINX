@@ -1,0 +1,10 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8">
+<title>Controle de acesso</title><style>body{font:15px/1.6 system-ui,sans-serif;background:#0f1115;color:#e6e9ef;max-width:640px;margin:0 auto;padding:3rem 1.25rem}h1{font-size:1.6rem}a{color:#6ea8fe}li{margin:.35rem 0}code{background:#0c0e12;padding:.15rem .4rem;border-radius:4px}</style>
+</head><body><h1>Área pública</h1><p>Qualquer um chega aqui. As demais exigem algo:</p>
+<ul>
+<li><a href="/interno/">/interno/</a> — só da rede interna (do seu terminal: 403)</li>
+<li><a href="/admin/">/admin/</a> — só com senha (<code>admin/senha123</code>)</li>
+<li><a href="/ou/">/ou/</a> — IP <strong>ou</strong> senha</li>
+<li><a href="/e/">/e/</a> — IP <strong>e</strong> senha</li>
+<li><a href="/mtls/">/mtls/</a> — só com certificado de cliente (via HTTPS na porta 8443)</li>
+</ul></body></html>

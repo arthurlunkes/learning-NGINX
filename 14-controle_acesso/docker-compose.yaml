@@ -1,0 +1,38 @@
+##############################################################################
+# Exemplo 14 - Controle de acesso e autenticacao
+##############################################################################
+
+services:
+  nginx:
+    image: nginx:latest
+    container_name: nginx-acesso
+    ports:
+      - "8080:80"
+      - "8443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+      - ./htpasswd:/etc/nginx/htpasswd:ro
+      - ./html:/usr/share/nginx/html:ro
+    networks: [acesso-network]
+    restart: unless-stopped
+
+  # Container de apoio: serve para testar as regras de IP a partir de DENTRO da
+  # rede, onde a origem nao e o gateway. Sem ele so daria para ver o 403.
+  cliente:
+    image: node:18
+    container_name: cliente-interno
+    hostname: cliente
+    command: sleep infinity
+    volumes:
+      - ./certs:/certs:ro
+    networks: [acesso-network]
+    restart: unless-stopped
+
+networks:
+  acesso-network:
+    driver: bridge
+    ipam:
+      config:
+        # Subnet fixa: o bloco `geo` e as regras allow/deny se referem a ela.
+        - subnet: 172.31.0.0/16
