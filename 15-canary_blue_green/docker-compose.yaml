@@ -1,0 +1,49 @@
+##############################################################################
+# Exemplo 15 - Canary e blue-green
+##############################################################################
+
+services:
+  nginx:
+    image: nginx:latest
+    container_name: nginx-deploy
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./snippets:/etc/nginx/snippets:ro
+    depends_on: [app-v1-a, app-v1-b, app-v2]
+    networks: [deploy-network]
+    restart: unless-stopped
+
+  # Producao atual (azul), com duas replicas
+  app-v1-a: &app
+    image: node:18
+    container_name: app-v1-a
+    hostname: app-v1-a
+    working_dir: /app
+    command: node index.js
+    environment:
+      VERSAO: v1
+      COR: azul
+    volumes:
+      - ./app:/app
+    networks: [deploy-network]
+    restart: unless-stopped
+
+  app-v1-b:
+    <<: *app
+    container_name: app-v1-b
+    hostname: app-v1-b
+
+  # Versao nova (verde), recebendo o canario
+  app-v2:
+    <<: *app
+    container_name: app-v2
+    hostname: app-v2
+    environment:
+      VERSAO: v2
+      COR: verde
+
+networks:
+  deploy-network:
+    driver: bridge
