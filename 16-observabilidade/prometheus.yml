@@ -1,0 +1,16 @@
+# Raspagem a cada 5s para o exemplo dar resultado rapido.
+# Em producao, 15s a 60s e o normal.
+global:
+  scrape_interval: 5s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Metricas do NGINX, traduzidas do stub_status pelo exporter
+  - job_name: nginx
+    static_configs:
+      - targets: ["exporter:9113"]
+
+  # O proprio Prometheus, para conferir que a raspagem esta viva
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
