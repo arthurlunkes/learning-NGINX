@@ -1,0 +1,107 @@
+##############################################################################
+# Exemplo 17 - Stream module (TCP e UDP)
+#
+# Portas expostas:
+#   9001  LB TCP puro
+#   9002  LB TCP com PROXY protocol
+#   9003  roteamento por SNI (ssl_preread)
+#   9004  LB UDP (-> 5353 no container)
+##############################################################################
+
+services:
+  stream:
+    image: nginx:latest
+    container_name: nginx-stream
+    ports:
+      - "9001:9001"
+      - "9002:9002"
+      - "9003:9003"
+      # 5353 e a porta do mDNS/Bonjour e costuma estar ocupada (no Windows,
+      # sempre). Por isso o host usa 9004 e o container mantem 5353.
+      - "9004:5353/udp"
+    volumes:
+      - ./stream/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./logs:/var/log/nginx
+    depends_on: [app1, app2, web-pp, tls-alfa, tls-beta, udp1, udp2]
+    networks: [stream-network]
+    restart: unless-stopped
+
+  app1: &app
+    image: node:18
+    container_name: stream-app1
+    hostname: app1
+    working_dir: /app
+    command: node index.js
+    environment:
+      NOME: app1
+    volumes:
+      - ./app:/app
+    networks: [stream-network]
+    restart: unless-stopped
+
+  app2:
+    <<: *app
+    container_name: stream-app2
+    hostname: app2
+    environment:
+      NOME: app2
+
+  # Sem `ports`: esta porta so aceita conexoes que comecem com a linha do
+  # PROXY protocol, entao acessar de fora falharia de qualquer forma.
+  web-pp:
+    image: nginx:latest
+    container_name: web-pp
+    hostname: web-pp
+    volumes:
+      - ./web-pp/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks: [stream-network]
+    restart: unless-stopped
+
+  # Os dois backends TLS. O certificado esta neles, nunca no proxy.
+  tls-alfa:
+    image: nginx:latest
+    container_name: tls-alfa
+    hostname: tls-alfa
+    volumes:
+      - ./tls-alfa/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+    networks: [stream-network]
+    restart: unless-stopped
+
+  tls-beta:
+    image: nginx:latest
+    container_name: tls-beta
+    hostname: tls-beta
+    volumes:
+      - ./tls-beta/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+    networks: [stream-network]
+    restart: unless-stopped
+
+  udp1: &udp
+    image: node:18
+    container_name: udp1
+    hostname: udp1
+    working_dir: /app
+    command: node index.js
+    environment:
+      NOME: udp1
+    volumes:
+      - ./udp:/app
+    networks: [stream-network]
+    restart: unless-stopped
+
+  udp2:
+    <<: *udp
+    container_name: udp2
+    hostname: udp2
+    environment:
+      NOME: udp2
+
+networks:
+  stream-network:
+    driver: bridge
+    ipam:
+      config:
+        # Subnet fixa: o `set_real_ip_from` do web-pp se refere a ela.
+        - subnet: 172.33.0.0/16
