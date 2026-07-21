@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<title>HTTP/3 + QUIC</title>
+<style>body{font:15px/1.6 system-ui,sans-serif;background:#0f1115;color:#e6e9ef;max-width:640px;margin:0 auto;padding:3rem 1.25rem}h1{font-size:1.6rem}code,pre{background:#0c0e12;padding:.15rem .4rem;border-radius:4px}pre{padding:.75rem;overflow-x:auto}#p{color:#6ee7a8;font-weight:700}</style>
+</head><body>
+<h1>HTTP/3 + QUIC</h1>
+<p>Protocolo desta página: <span id="p">…</span></p>
+<p>No DevTools (F12) → aba Network → coluna <strong>Protocol</strong>, procure por <code>h3</code>.
+A <strong>primeira</strong> requisição sempre vem como <code>h2</code>: o navegador só descobre o HTTP/3
+pelo header <code>Alt-Svc</code> e o usa a partir da seguinte. Recarregue a página.</p>
+<pre>curl --http3 -k https://localhost/versao</pre>
+<script>
+  const e = performance.getEntriesByType("navigation")[0];
+  document.getElementById("p").textContent = (e && e.nextHopProtocol) || "desconhecido";
+</script>
+</body></html>

@@ -1,0 +1,27 @@
+##############################################################################
+# Exemplo 18 - HTTP/3 e QUIC
+#
+# Repare no mapeamento das portas: a 443 aparece DUAS vezes, uma em TCP e
+# outra em UDP. Esquecer a linha /udp faz o HTTP/3 simplesmente nao funcionar,
+# sem nenhum erro visivel - o cliente cai para HTTP/2 em silencio.
+##############################################################################
+
+services:
+  nginx:
+    image: nginx:latest
+    container_name: nginx-http3
+    ports:
+      - "8080:80"
+      - "8443:443"
+      - "8443:443/udp"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+      - ./html:/usr/share/nginx/html:ro
+      - ./logs:/var/log/nginx
+    networks: [h3-network]
+    restart: unless-stopped
+
+networks:
+  h3-network:
+    driver: bridge
