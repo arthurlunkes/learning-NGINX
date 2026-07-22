@@ -1,0 +1,105 @@
+##############################################################################
+# Exemplo 19 - WAF com ModSecurity + OWASP Core Rule Set
+#
+# Tres caminhos ate o MESMO backend, para comparar lado a lado:
+#   8080  WAF bloqueando
+#   8081  WAF so observando (DetectionOnly)
+#   8082  sem WAF nenhum
+##############################################################################
+
+services:
+  # ==========================================================================
+  # WAF EM MODO BLOQUEIO
+  #
+  # A imagem oficial do OWASP CRS ja vem com ModSecurity compilado e o Core
+  # Rule Set instalado. A imagem `nginx` normal NAO tem ModSecurity - seria
+  # preciso compilar o modulo.
+  #
+  # Tudo se configura por variavel de ambiente; nao ha nginx.conf aqui.
+  # ==========================================================================
+  waf:
+    image: owasp/modsecurity-crs:nginx
+    container_name: waf-bloqueio
+    ports:
+      - "8080:8080"
+    environment:
+      BACKEND: http://app:3000
+      SERVER_NAME: localhost
+
+      # on | DetectionOnly | off
+      MODSEC_RULE_ENGINE: "on"
+
+      # Nivel de paranoia (1 a 4). Quanto maior, mais regras entram em acao -
+      # e mais falso positivo aparece. Comecar em 1 e subir observando o log e
+      # o caminho recomendado; ir direto para 4 costuma quebrar a aplicacao.
+      BLOCKING_PARANOIA: "1"
+
+      # O CRS nao bloqueia na primeira regra que casa: ele SOMA pontos.
+      # Cada regra tem uma severidade (critical=5, error=4, warning=3,
+      # notice=2) e o bloqueio so acontece quando o total passa deste limite.
+      # Subir para 10 tolera uma regra critica isolada; descer para 3 deixa o
+      # WAF bem mais agressivo.
+      ANOMALY_INBOUND: "5"
+      ANOMALY_OUTBOUND: "4"
+
+      MODSEC_AUDIT_LOG: /dev/stdout
+      MODSEC_AUDIT_LOG_FORMAT: JSON
+    volumes:
+      # Excecoes customizadas, carregadas ANTES do CRS.
+      - ./regras/excecoes.conf:/etc/modsecurity.d/owasp-crs/rules/REQUEST-900-EXCLUSION-RULES-BEFORE-CRS.conf:ro
+    depends_on: [app]
+    networks: [waf-network]
+    restart: unless-stopped
+
+  # ==========================================================================
+  # WAF SO OBSERVANDO
+  #
+  # Detecta e registra, mas deixa passar. E assim que se coloca um WAF em
+  # producao sem quebrar nada: roda dias em DetectionOnly, olha o que ELE
+  # bloquearia, ajusta as excecoes, e so entao liga o bloqueio.
+  # ==========================================================================
+  waf-deteccao:
+    image: owasp/modsecurity-crs:nginx
+    container_name: waf-deteccao
+    ports:
+      - "8081:8080"
+    environment:
+      BACKEND: http://app:3000
+      SERVER_NAME: localhost
+      MODSEC_RULE_ENGINE: DetectionOnly
+      BLOCKING_PARANOIA: "1"
+      ANOMALY_INBOUND: "5"
+      MODSEC_AUDIT_LOG: /dev/stdout
+      MODSEC_AUDIT_LOG_FORMAT: JSON
+    depends_on: [app]
+    networks: [waf-network]
+    restart: unless-stopped
+
+  # ==========================================================================
+  # SEM WAF - a referencia
+  # ==========================================================================
+  sem-waf:
+    image: nginx:latest
+    container_name: sem-waf
+    ports:
+      - "8082:80"
+    volumes:
+      - ./sem-waf/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on: [app]
+    networks: [waf-network]
+    restart: unless-stopped
+
+  app:
+    image: node:18
+    container_name: waf-app
+    hostname: app
+    working_dir: /app
+    command: node index.js
+    volumes:
+      - ./app:/app
+    networks: [waf-network]
+    restart: unless-stopped
+
+networks:
+  waf-network:
+    driver: bridge
