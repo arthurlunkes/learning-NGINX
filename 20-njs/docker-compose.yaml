@@ -1,0 +1,17 @@
+##############################################################################
+# Exemplo 20 - njs (JavaScript dentro do NGINX)
+#
+# Um container so: nao ha backend. Toda a logica roda dentro do NGINX.
+##############################################################################
+
+services:
+  nginx:
+    image: nginx:latest
+    container_name: nginx-njs
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./njs:/etc/nginx/njs:ro
+      - ./logs:/var/log/nginx
+    restart: unless-stopped
