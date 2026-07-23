@@ -1,0 +1,56 @@
+##############################################################################
+# Exemplo 21 - OpenTelemetry (tracing distribuido)
+#
+#   nginx (borda)  ->  app (backend)
+#         \                /
+#          \--> jaeger <--/      recebe os spans e monta a arvore
+##############################################################################
+
+services:
+  # Imagem PROPRIA: o modulo otel nao vem na imagem oficial e e travado por
+  # versao do NGINX. Ver os comentarios do Dockerfile.
+  nginx:
+    build: .
+    container_name: nginx-otel
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./snippets:/etc/nginx/snippets:ro
+    depends_on: [app, jaeger]
+    networks: [otel-network]
+    restart: unless-stopped
+
+  app:
+    image: node:18
+    container_name: otel-app
+    hostname: app
+    working_dir: /app
+    command: node index.js
+    environment:
+      SERVICO: app-pedidos
+      OTLP_HTTP: http://jaeger:4318/v1/traces
+    volumes:
+      - ./app:/app
+    depends_on: [jaeger]
+    networks: [otel-network]
+    restart: unless-stopped
+
+  # Coletor + armazenamento + interface, tudo num container.
+  # Em producao isso seria um OpenTelemetry Collector na frente de um backend
+  # de verdade (Jaeger, Tempo, Datadog...).
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: jaeger
+    ports:
+      - "16686:16686"   # interface web
+      - "4317:4317"     # OTLP gRPC  (usado pelo NGINX)
+      - "4318:4318"     # OTLP HTTP  (usado pela aplicacao)
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    networks: [otel-network]
+    restart: unless-stopped
+
+networks:
+  otel-network:
+    driver: bridge
